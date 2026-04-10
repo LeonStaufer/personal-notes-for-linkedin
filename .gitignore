@@ -1,0 +1,22 @@
+# OS/editor noise
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+*~
+
+# Local/generated extension artifacts
+dist/
+web-ext-artifacts/
+*.zip
+*.xpi
+
+# Local development state
+.env
+.env.*
+node_modules/
+
+# Personal assistant/tooling state
+.claude/
+CLAUDE.local.md
+CLAUDE.md

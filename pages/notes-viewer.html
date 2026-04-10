@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Personal Notes for LinkedIn</title>
+        <link rel="icon" type="image/png" href="../icons/icon48.png" />
+        <link rel="stylesheet" href="common.css" />
+        <link rel="stylesheet" href="notes-viewer.css" />
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <h1>Personal Notes for LinkedIn</h1>
+                <div class="header-actions">
+                    <input
+                        type="text"
+                        id="searchInput"
+                        placeholder="Search notes..."
+                        class="search-input"
+                        aria-label="Search notes"
+                    />
+                </div>
+                <input type="file" id="fileInput" accept=".json" style="display: none" />
+            </header>
+
+            <div id="stats" class="stats">
+                <div class="stat-item">
+                    <span class="stat-label">Total Notes:</span>
+                    <span id="withNotesCount" class="stat-value">0</span>
+                </div>
+                <button id="refreshBtn" class="btn btn-secondary">
+                    <span class="icon">🔄</span>
+                    Refresh
+                </button>
+                <button id="exportBtn" class="btn btn-secondary">
+                    <span class="icon">📤</span>
+                    Export
+                </button>
+                <button id="importBtn" class="btn btn-secondary">
+                    <span class="icon">📥</span>
+                    Import
+                </button>
+                <div id="syncSection" class="sync-section" style="display:none">
+                    <button id="setSyncFileBtn" class="btn btn-secondary">
+                        <span class="icon">📁</span>
+                        Set sync file
+                    </button>
+                    <span id="syncStatus" class="sync-status"></span>
+                    <button id="removeSyncBtn" class="btn btn-secondary" style="display:none">Remove sync</button>
+                </div>
+                <div id="syncFallback" class="sync-fallback" style="display:none">
+                    Live sync not supported in Firefox: use Export instead
+                </div>
+            </div>
+
+            <div id="tableContainer" class="table-container">
+                <table id="notesTable" class="notes-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="username" scope="col">
+                                Username
+                                <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-sort="name" scope="col">
+                                Name
+                                <span class="sort-indicator"></span>
+                            </th>
+                            <th scope="col">Notes</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="notesTableBody">
+                        <!-- Table rows will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="emptyState" class="empty-state" style="display: none">
+                <div class="empty-icon">📝</div>
+                <h2>No Notes Yet</h2>
+                <p>Start adding notes to LinkedIn profiles to see them here.</p>
+            </div>
+
+            <div id="loadingState" class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading notes...</p>
+            </div>
+        </div>
+
+        <script src="../src/shared.js"></script>
+        <script src="notes-viewer.js"></script>
+    </body>
+</html>

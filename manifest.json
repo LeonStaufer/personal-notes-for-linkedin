@@ -1,0 +1,43 @@
+{
+    "manifest_version": 3,
+    "name": "Personal Notes for LinkedIn",
+    "description": "Add personal notes to LinkedIn profiles on the fly. Minimalist, yet highly functional unofficial extension. Everything is stored in your browser.",
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    },
+    "version": "0.0.0",
+    "content_scripts": [
+        {
+            "matches": ["*://*.linkedin.com/*"],
+            "css": ["content.css"],
+            "js": ["src/shared.js", "content.js"]
+        }
+    ],
+    "permissions": ["storage"],
+    "background": {
+        "service_worker": "src/background.js",
+        "scripts": ["src/background.js"]
+    },
+    "action": {
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "48": "icons/icon48.png",
+            "128": "icons/icon128.png"
+        },
+        "default_title": "Personal Notes for LinkedIn"
+    },
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "personalnotes-addon@staufer.me",
+            "strict_min_version": "140.0",
+            "data_collection_permissions": {
+                "required": ["none"]
+            }
+        },
+        "gecko_android": {
+            "strict_min_version": "142.0"
+        }
+    }
+}

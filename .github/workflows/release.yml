@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Chrome/Edge extension
+        run: |
+          set -euo pipefail
+          mkdir -p dist/chrome
+          cp -r content.js content.css manifest.json src pages icons dist/chrome/
+          rm -f dist/chrome/icons/icon.psd
+
+          jq \
+            --arg v "${{ steps.version.outputs.version }}" \
+            '.version = $v | del(.background.scripts) | del(.browser_specific_settings)' \
+            manifest.json > dist/chrome/manifest.json
+
+          jq -e . dist/chrome/manifest.json > /dev/null
+
+          cd dist/chrome
+          zip -r ../../personal-notes-for-linkedin-${{ steps.version.outputs.version }}-chrome.zip .
+
+      - name: Build Firefox extension
+        run: |
+          set -euo pipefail
+          mkdir -p dist/firefox
+          cp -r content.js content.css manifest.json src pages icons dist/firefox/
+          rm -f dist/firefox/icons/icon.psd
+
+          jq \
+            --arg v "${{ steps.version.outputs.version }}" \
+            '.version = $v | del(.background.service_worker)' \
+            manifest.json > dist/firefox/manifest.json
+
+          jq -e . dist/firefox/manifest.json > /dev/null
+
+          cd dist/firefox
+          zip -r ../../personal-notes-for-linkedin-${{ steps.version.outputs.version }}-firefox.zip .
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            personal-notes-for-linkedin-${{ steps.version.outputs.version }}-chrome.zip
+            personal-notes-for-linkedin-${{ steps.version.outputs.version }}-firefox.zip
+          generate_release_notes: true

@@ -8,11 +8,16 @@
 
 #personal-notes-textarea {
     width: 100%;
-    height: 80px;
+    height: 10rem;
     font: inherit;
     font-size: 1.4rem;
     color: inherit;
     box-sizing: border-box;
+    border-color: rgba(0,0,0,0.3);
+    border-width: 1px;
+    border-radius: 2rem;
+    padding: 1rem;
+    border-style: solid;
 }
 
 #personal-notes-status {

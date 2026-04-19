@@ -210,6 +210,12 @@ h1 {
     line-height: 1.5;
 }
 
+.note-meta {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #666666;
+}
+
 .empty-note {
     color: #999999;
     font-style: italic;

@@ -18,6 +18,25 @@ let sortDirection = "asc";
 const QUOTA_BYTES_PER_ITEM = 8192;
 const encoder = new TextEncoder();
 
+function parseStoredTimestamp(value) {
+    if (typeof value !== "string") return "";
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? "" : new Date(parsed).toISOString();
+}
+
+function formatTimestamp(value) {
+    if (!value) return "";
+    const parsed = Date.parse(value);
+    if (Number.isNaN(parsed)) return "";
+    return new Date(parsed).toLocaleString([], {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+}
+
 // ---- File Sync ----
 
 function openSyncDb() {
@@ -271,7 +290,9 @@ async function loadNotes() {
                 memberId,
                 username: typeof value.username === "string" && value.username ? value.username : "Unknown",
                 name: typeof value.name === "string" ? value.name : "",
-                notes: typeof value.notes === "string" ? value.notes : ""
+                notes: typeof value.notes === "string" ? value.notes : "",
+                createdAt: parseStoredTimestamp(value.createdAt),
+                updatedAt: parseStoredTimestamp(value.updatedAt)
             }));
 
         filteredNotes = [...allNotes];
@@ -380,8 +401,17 @@ async function importNotes(file) {
                 notes: typeof value.notes === "string" ? value.notes : "",
                 username: typeof value.username === "string" ? value.username : "",
                 memberId: typeof value.memberId === "string" && value.memberId ? value.memberId : key,
-                name: typeof value.name === "string" ? value.name : ""
+                name: typeof value.name === "string" ? value.name : "",
+                createdAt: parseStoredTimestamp(value.createdAt),
+                updatedAt: parseStoredTimestamp(value.updatedAt)
             };
+
+            if (!note.createdAt && note.updatedAt) {
+                note.createdAt = note.updatedAt;
+            }
+            if (!note.updatedAt && note.createdAt) {
+                note.updatedAt = note.createdAt;
+            }
 
             if (!note.notes && !note.username && !note.name) {
                 skippedNotes += 1;
@@ -530,7 +560,13 @@ function createNoteRow(note) {
     const notesContent = document.createElement("div");
     notesContent.className = "notes-content";
     notesContent.appendChild(note.notes ? document.createTextNode(note.notes) : createEmptyNote("No notes"));
+    const noteMeta = document.createElement("div");
+    noteMeta.className = "note-meta";
+    noteMeta.appendChild(document.createTextNode(`Added ${formatTimestamp(note.createdAt) || "Unknown"}`));
+    noteMeta.appendChild(document.createTextNode(" • "));
+    noteMeta.appendChild(document.createTextNode(`Updated ${formatTimestamp(note.updatedAt) || "Unknown"}`));
     notesCell.appendChild(notesContent);
+    notesCell.appendChild(noteMeta);
 
     const actionsCell = document.createElement("td");
     actionsCell.className = "actions-cell";

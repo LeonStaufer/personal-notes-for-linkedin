@@ -388,8 +388,17 @@ async function saveNotes(profile, notes) {
         }
 
         const key = existing?.key ?? crypto.randomUUID();
+        const now = new Date().toISOString();
+        const createdAt = existing?.entry?.createdAt || existing?.entry?.updatedAt || now;
         await browserAPI.storage.sync.set({
-            [key]: { notes, username: profile.username, memberId: profile.memberId, name: profile.name },
+            [key]: {
+                notes,
+                username: profile.username,
+                memberId: profile.memberId,
+                name: profile.name,
+                createdAt,
+                updatedAt: now
+            },
         });
         _log(`Note for ${profile.username} saved (key: ${key})`);
         return { ok: true };

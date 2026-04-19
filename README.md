@@ -6,7 +6,7 @@ A simple browser extension that lets you write private notes on any LinkedIn pro
 >
 > This is an independent project and is not affiliated with, endorsed by, or sponsored by LinkedIn.
 
----
+![Screenshot of the add-on on a fake LinkedIn profile page.](screenshot-full.jpg)
 
 ## Features
 
@@ -29,8 +29,6 @@ Click the extension icon in your browser toolbar to open a full-page notes viewe
 ### Cross-browser
 Works on Chrome, Edge, and Firefox.
 
----
-
 ## Privacy
 
 All notes are stored using the browser's built-in `storage.sync` API. If you are signed in to browser sync, notes are synced across your own devices — they are **never sent to any external server**.
@@ -41,15 +39,12 @@ The extension only runs on `*.linkedin.com` pages. You must grant the extension 
 
 **Verifying this yourself:** The extension has no network permissions in `manifest.json` — it only declares the `storage` permission. The two relevant source files are `content.js` (runs on LinkedIn pages, reads/writes notes) and `src/background.js` (opens the notes viewer tab when you click the icon). There is no analytics, telemetry, or external requests of any kind.
 
----
 
 ## Storage limits
 
 Each note is capped at roughly 8 KB (browser `storage.sync` per-item quota). The extension will warn you if a note exceeds this limit.
 
 Exported and synced backup files are JSON and are also plain text. Store them somewhere you trust.
-
----
 
 ## Installation
 
@@ -77,9 +72,7 @@ Firefox requires extensions to be signed for permanent installation in the stand
 
 > Firefox temporary add-ons are removed when the browser restarts. For a persistent install in standard Firefox, install the signed version from Firefox Add-ons once published.
 
----
-
-## Contributing / Developing
+## Contributing
 
 The extension has no build step — it's plain JS, HTML, and CSS, loadable directly as an unpacked extension.
 
@@ -95,15 +88,9 @@ The extension has no build step — it's plain JS, HTML, and CSS, loadable direc
 
 **Cross-browser API:** All storage and browser calls use `const browserAPI = typeof browser !== 'undefined' ? browser : chrome` (defined in `src/shared.js`). Never use `chrome.*` directly.
 
-**Storage key:** `browser.storage.sync`, keyed by the LinkedIn member ID extracted from the page. Each entry stores `{ notes, username, memberId, name }`.
+**Storage key:** `browser.storage.sync`, keyed by the LinkedIn member ID extracted from the page. Each entry stores `{ notes, username, memberId, name, createdAt, updatedAt }`, where the timestamps are ISO 8601 strings.
 
 **Loading for development:**
 - Chrome/Edge: `chrome://extensions` → Developer mode → Load unpacked
 - Firefox: `about:debugging` → Load Temporary Add-on → select `manifest.json`
 - Or use `npx web-ext run` for Firefox with auto-reload
-
----
-
-## License
-
-MIT

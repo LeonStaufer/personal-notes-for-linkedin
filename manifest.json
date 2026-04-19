@@ -1,13 +1,13 @@
 {
     "manifest_version": 3,
     "name": "Personal Notes for LinkedIn",
-    "description": "Add personal notes to LinkedIn profiles on the fly. Minimalist, yet highly functional unofficial extension. Everything is stored in your browser.",
+    "description": "Add your personal notes to any LinkedIn profile. Stored locally in your browser and synced across your devices.",
     "icons": {
         "16": "icons/icon16.png",
         "48": "icons/icon48.png",
         "128": "icons/icon128.png"
     },
-    "version": "0.0.0",
+    "version": "1.0.0",
     "content_scripts": [
         {
             "matches": ["*://*.linkedin.com/*"],

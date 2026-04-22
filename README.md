@@ -2,6 +2,11 @@
 
 A simple browser extension that lets you write private notes on any LinkedIn profile — stored locally in your browser, never sent anywhere.
 
+[![Chrome Web Store Logo](https://developer.chrome.com/static/docs/webstore/branding/image/tbyBjqi7Zu733AAKA5n4.png)](https://chromewebstore.google.com/detail/innjdepebkhnfjdncjedokfpafkohdfm)
+[![Image of the "Get the Addon" Logo](https://extensionworkshop.com/assets/img/documentation/publish/get-the-addon-178x60px.dad84b42.png)](https://addons.mozilla.org/addon/personal-notes-for-linkedin/)
+
+---
+
 > **Note:** Notes are stored in plain text and are **not encrypted**. Anyone with access to your browser profile or sync data can read them.
 >
 > This is an independent project and is not affiliated with, endorsed by, or sponsored by LinkedIn.
@@ -49,12 +54,10 @@ Exported and synced backup files are JSON and are also plain text. Store them so
 ## Installation
 
 ### Chrome / Edge (from the Chrome Web Store)
-*(Link coming once published)*
+[![Chrome Web Store Logo](https://developer.chrome.com/static/docs/webstore/branding/image/tbyBjqi7Zu733AAKA5n4.png)](https://chromewebstore.google.com/detail/innjdepebkhnfjdncjedokfpafkohdfm)
 
 ### Firefox (from Firefox Add-ons)
-*(Link coming once published)*
-
-Firefox requires extensions to be signed for permanent installation in the standard browser. Until this extension is published on Firefox Add-ons, use the temporary developer install below for testing.
+[![Image of the "Get the Addon" Logo](https://extensionworkshop.com/assets/img/documentation/publish/get-the-addon-178x60px.dad84b42.png)](https://addons.mozilla.org/addon/personal-notes-for-linkedin/)
 
 ### Manual install (developer mode)
 

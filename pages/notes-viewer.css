@@ -124,6 +124,40 @@ h1 {
     color: #444;
 }
 
+.storage-mode-section {
+    background: white;
+    padding: 16px 24px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.storage-mode-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.storage-mode-title {
+    font-size: 14px;
+    color: #666666;
+    margin-right: 4px;
+}
+
+.storage-mode-toggle .btn.active {
+    background: #0a66c2;
+    color: #ffffff;
+    border-color: #0a66c2;
+}
+
+.storage-mode-help {
+    margin-top: 12px;
+    font-size: 13px;
+    color: #666666;
+    line-height: 1.5;
+}
+
 .table-container {
     background: white;
     border-radius: 8px;
@@ -305,6 +339,22 @@ h1 {
 
     .stat-value {
         color: #58a6ff;
+    }
+
+    .storage-mode-section {
+        background: #2d333b;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .storage-mode-title,
+    .storage-mode-help {
+        color: #8b949e;
+    }
+
+    .storage-mode-toggle .btn.active {
+        background: #1f6feb;
+        color: #ffffff;
+        border-color: #1f6feb;
     }
 
     .table-container {

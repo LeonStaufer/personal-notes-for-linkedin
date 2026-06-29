@@ -19,6 +19,17 @@ let injecting = false; // true while injection is in progress; prevents concurre
 let debounceTimer = null;
 let initialized = false;
 
+// Cached active storage mode ("sync" | "local"). Kept in sync with the flag the
+// viewer writes to storage.local so the per-note size limit can be applied only
+// in sync mode (local storage has no per-item limit worth enforcing here).
+let storageMode = "sync";
+getStorageMode().then(mode => { storageMode = mode; });
+browserAPI.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes[STORAGE_MODE_KEY]) {
+        storageMode = changes[STORAGE_MODE_KEY].newValue === "local" ? "local" : "sync";
+    }
+});
+
 async function handlePageState() {
     const currentUrl = window.location.href;
 
@@ -241,21 +252,19 @@ async function injectNotesSection(injectionTarget, profile) {
     const notesContainer = document.createElement("section");
     notesContainer.id = "personal-notes-notes-container";
 
-    // Per-item quota: key (36 bytes UUID) + JSON-encoded value must stay under 8192 bytes
-    const QUOTA_BYTES_PER_ITEM = 8192;
-    const encoder = new TextEncoder();
+    // Per-item quota only applies to sync storage: key (36 bytes UUID) + JSON-encoded
+    // value must stay under 8192 bytes. Local storage has no meaningful per-item limit.
     function getItemBytes(notesText) {
-        return encoder.encode(
-            "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" +
-            JSON.stringify({ notes: notesText, username: profile.username, memberId: profile.memberId, name: profile.name })
-        ).length;
+        return noteEntryBytes(
+            "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+            { notes: notesText, username: profile.username, memberId: profile.memberId, name: profile.name }
+        );
     }
 
     // Textarea for editing notes
     const notesInput = document.createElement("textarea");
     notesInput.id = "personal-notes-textarea";
     notesInput.placeholder = "Add your notes here...";
-    notesInput.maxLength = 8192;
     notesInput.value = (await getNotes(profile)) || "";
 
     // Error message element (storage full, etc.)
@@ -269,7 +278,7 @@ async function injectNotesSection(injectionTarget, profile) {
     }
 
     function isOverLimit(text) {
-        return getItemBytes(text) > QUOTA_BYTES_PER_ITEM;
+        return storageMode === "sync" && getItemBytes(text) > SYNC_QUOTA_BYTES_PER_ITEM;
     }
 
     // Save button
@@ -288,13 +297,13 @@ async function injectNotesSection(injectionTarget, profile) {
     notesInput.addEventListener("input", () => {
         const overLimit = isOverLimit(notesInput.value);
         setButtonState(!overLimit && notesInput.value !== initialText);
-        if (overLimit) updateStatus(`Note too long — trim to under ${(QUOTA_BYTES_PER_ITEM / 1024).toFixed(0)} KB`);
+        if (overLimit) updateStatus("Too long for sync storage. Switch to local storage in the viewer.");
         else updateStatus(null);
     });
 
     saveButton.addEventListener("click", async () => {
         if (isOverLimit(notesInput.value)) {
-            updateStatus(`Note too long — trim to under ${(QUOTA_BYTES_PER_ITEM / 1024).toFixed(0)} KB`);
+            updateStatus("Too long for sync storage. Switch to local storage in the viewer.");
             return;
         }
 
@@ -332,7 +341,7 @@ function removeNotesSection() {
 // Returns { key, entry } for the best match, or null if none found.
 // Match priority: exact memberId field → exact username field → fuzzy username.
 async function findEntry(profile) {
-    const all = await browserAPI.storage.sync.get(null);
+    const all = await getAllNotes();
     const normalize = s => s?.toLowerCase().replace(/[^a-z0-9]/g, "") ?? "";
     const currentNorm = normalize(profile.username);
 
@@ -381,7 +390,7 @@ async function saveNotes(profile, notes) {
 
         if (notes.length === 0) {
             if (existing?.key) {
-                await browserAPI.storage.sync.remove(existing.key);
+                await removeNotes(existing.key);
                 _log(`Empty note removed for ${profile.username} (key: ${existing.key})`);
             }
             return { ok: true };
@@ -390,7 +399,7 @@ async function saveNotes(profile, notes) {
         const key = existing?.key ?? crypto.randomUUID();
         const now = new Date().toISOString();
         const createdAt = existing?.entry?.createdAt || existing?.entry?.updatedAt || now;
-        await browserAPI.storage.sync.set({
+        await setNotes({
             [key]: {
                 notes,
                 username: profile.username,
@@ -405,7 +414,7 @@ async function saveNotes(profile, notes) {
     } catch (error) {
         if (error.name === "QuotaExceededError" || error.message?.includes("QuotaExceeded") || error.message?.includes("quota")) {
             _error(`Quota exceeded saving note for ${profile.username}: ${error}`);
-            return { ok: false, error: "Storage full — delete some notes to free up space." };
+            return { ok: false, error: "Sync storage full. Switch to local storage in the viewer." };
         }
         _error(`Failed to save note for ${profile.username} with error: ${error}`);
         return { ok: false, error: "Failed to save note." };

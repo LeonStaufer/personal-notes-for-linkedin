@@ -15,7 +15,6 @@ let allNotes = [];
 let filteredNotes = [];
 let sortColumn = "username";
 let sortDirection = "asc";
-const QUOTA_BYTES_PER_ITEM = 8192;
 const encoder = new TextEncoder();
 
 function parseStoredTimestamp(value) {
@@ -77,7 +76,7 @@ async function clearStoredHandle() {
 }
 
 async function syncToFile(handle) {
-    const data = await browserAPI.storage.sync.get(null);
+    const data = await getAllNotes();
     const json = JSON.stringify(
         { version: "1.0", syncDate: new Date().toISOString(), notes: data },
         null,
@@ -186,7 +185,15 @@ async function initFileSync() {
 
     // Listen for storage changes while viewer tab is open
     browserAPI.storage.onChanged.addListener(async (changes, area) => {
-        if (area !== "sync") return;
+        // Storage mode toggled (possibly from another tab) — refresh the view.
+        if (area === "local" && changes[STORAGE_MODE_KEY]) {
+            await loadNotes();
+            updateStorageModeUI(await getStorageMode());
+        }
+
+        // Mirror the active area to the sync file.
+        const mode = await getStorageMode();
+        if (area !== mode) return;
         let h;
         try {
             h = await getStoredHandle();
@@ -253,11 +260,95 @@ async function handleReauthorize() {
 
 // ---- End File Sync ----
 
+// ---- Storage mode (sync vs local) ----
+
+function updateStorageModeUI(mode) {
+    const syncBtn = document.getElementById("storageModeSyncBtn");
+    const localBtn = document.getElementById("storageModeLocalBtn");
+    if (!syncBtn || !localBtn) return;
+    syncBtn.classList.toggle("active", mode === "sync");
+    localBtn.classList.toggle("active", mode === "local");
+    syncBtn.setAttribute("aria-pressed", String(mode === "sync"));
+    localBtn.setAttribute("aria-pressed", String(mode === "local"));
+}
+
+// Returns a heads-up message if `notes` won't fit in sync storage, else null.
+function syncFitProblem(notes) {
+    const entries = Object.entries(notes);
+    if (entries.length > SYNC_MAX_ITEMS) {
+        return `Too many notes for sync storage (max ${SYNC_MAX_ITEMS}). Staying on local storage.`;
+    }
+    let total = 0;
+    for (const [key, value] of entries) {
+        const bytes = getStorageItemBytes(key, value);
+        if (bytes > SYNC_QUOTA_BYTES_PER_ITEM) {
+            return "A note is too large for sync storage. Staying on local storage.";
+        }
+        total += bytes;
+    }
+    if (total > SYNC_QUOTA_BYTES) {
+        return "Too much data for sync storage. Staying on local storage.";
+    }
+    return null;
+}
+
+async function switchStorageMode(target) {
+    const current = await getStorageMode();
+    if (current === target) return;
+
+    const from = notesAreaForMode(current);
+    const to = notesAreaForMode(target);
+
+    // Collect note entries from the current area (exclude bookkeeping keys).
+    const all = await from.get(null);
+    for (const k of RESERVED_KEYS) delete all[k];
+
+    // Switching back to sync is only allowed if everything fits — otherwise warn and stay put.
+    if (target === "sync") {
+        const problem = syncFitProblem(all);
+        if (problem) {
+            showToast(problem, true);
+            return;
+        }
+    }
+
+    // Copy (don't move) notes into the target area. We deliberately leave the source
+    // copy intact: clearing storage.sync would propagate the deletion to the user's
+    // other devices and wipe their notes. Local mode is a per-device choice, so the
+    // sync copy stays as-is.
+    try {
+        await to.set(all);
+    } catch (e) {
+        _error(`Failed to copy notes to ${target} storage: ${e}`);
+        showToast(target === "sync" ? "Too much data for sync storage. Staying on local storage." : "Failed to switch storage", true);
+        return;
+    }
+
+    await setStorageMode(target);
+    updateStorageModeUI(target);
+    await loadNotes();
+
+    // Refresh the file backup so it reflects the newly-active area.
+    try {
+        const h = await getStoredHandle();
+        if (h && (await h.queryPermission({ mode: "readwrite" })) === "granted") {
+            await syncToFile(h);
+        }
+    } catch (e) {
+        // best-effort; file sync may be unavailable (e.g. Firefox)
+    }
+
+    showToast(target === "sync" ? "Switched to sync storage" : "Switched to local storage");
+}
+
+// ---- End Storage mode ----
+
 // Initialize
 async function init() {
     await loadNotes();
     setupEventListeners();
     initFileSync();
+    updateStorageModeUI(await getStorageMode());
 }
 
 // Setup event listeners
@@ -267,6 +358,9 @@ function setupEventListeners() {
     importBtn.addEventListener("click", () => fileInput.click());
     fileInput.addEventListener("change", handleFileSelect);
     refreshBtn.addEventListener("click", handleRefresh);
+
+    document.getElementById("storageModeSyncBtn").addEventListener("click", () => switchStorageMode("sync"));
+    document.getElementById("storageModeLocalBtn").addEventListener("click", () => switchStorageMode("local"));
 
     // Sort headers
     document.querySelectorAll(".sortable").forEach(header => {
@@ -282,7 +376,7 @@ async function loadNotes() {
     showLoading(true);
 
     try {
-        const data = await browserAPI.storage.sync.get(null);
+        const data = await getAllNotes();
 
         allNotes = Object.entries(data)
             .filter(([, v]) => v && typeof v === "object" && "notes" in v)
@@ -334,7 +428,7 @@ function handleSearch() {
 // Export notes to JSON file
 async function exportNotes() {
     try {
-        const data = await browserAPI.storage.sync.get(null);
+        const data = await getAllNotes();
 
         if (Object.keys(data).length === 0) {
             showToast("No notes to export", true);
@@ -388,11 +482,12 @@ async function importNotes(file) {
             return;
         }
 
+        const mode = await getStorageMode();
         const validNotes = [];
         let skippedNotes = 0;
 
         for (const [key, value] of Object.entries(notesData)) {
-            if (!isValidStorageKey(key) || !value || typeof value !== "object") {
+            if (RESERVED_KEYS.has(key) || !isValidStorageKey(key) || !value || typeof value !== "object") {
                 skippedNotes += 1;
                 continue;
             }
@@ -418,7 +513,8 @@ async function importNotes(file) {
                 continue;
             }
 
-            if (getStorageItemBytes(key, note) > QUOTA_BYTES_PER_ITEM) {
+            // Per-item size only constrains sync storage; local storage has no such cap.
+            if (mode === "sync" && getStorageItemBytes(key, note) > SYNC_QUOTA_BYTES_PER_ITEM) {
                 skippedNotes += 1;
                 continue;
             }
@@ -440,7 +536,7 @@ async function importNotes(file) {
         }
 
         // Import the notes
-        await browserAPI.storage.sync.set(Object.fromEntries(validNotes));
+        await setNotes(Object.fromEntries(validNotes));
 
         const skippedToast = skippedNotes ? ` (${skippedNotes} skipped)` : "";
         showToast(`Successfully imported ${validNotes.length} note(s)${skippedToast}`);
@@ -638,7 +734,7 @@ async function deleteNote(memberId, username) {
     }
 
     try {
-        await browserAPI.storage.sync.remove(memberId);
+        await removeNotes(memberId);
         showToast(`Notes for ${username} deleted`);
         await loadNotes();
     } catch (error) {

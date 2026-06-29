@@ -27,9 +27,16 @@ async function getStoredHandle() {
     });
 }
 
-// Sync all notes to the stored file handle (best-effort, called from background)
+// Keys that live alongside notes in storage.local but are not note entries.
+const RESERVED_KEYS = new Set(["pendingSync", "__storageMode"]);
+
+// Sync all notes to the stored file handle (best-effort, called from background).
+// Mirrors whichever storage area is currently active (sync or local).
 browserAPI.storage.onChanged.addListener(async (changes, area) => {
-    if (area !== "sync") return;
+    // Determine the active notes area; only react to changes in that area.
+    const { __storageMode } = await browserAPI.storage.local.get("__storageMode");
+    const mode = __storageMode === "local" ? "local" : "sync";
+    if (area !== mode) return;
     let handle;
     try {
         handle = await getStoredHandle();
@@ -40,7 +47,8 @@ browserAPI.storage.onChanged.addListener(async (changes, area) => {
     try {
         const perm = await handle.queryPermission({ mode: "readwrite" });
         if (perm === "granted") {
-            const data = await browserAPI.storage.sync.get(null);
+            const data = await browserAPI.storage[mode].get(null);
+            for (const k of RESERVED_KEYS) delete data[k];
             const json = JSON.stringify(
                 { version: "1.0", syncDate: new Date().toISOString(), notes: data },
                 null,

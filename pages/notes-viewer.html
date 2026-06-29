@@ -54,6 +54,25 @@
                 </div>
             </div>
 
+            <div id="storageModeSection" class="storage-mode-section">
+                <div class="storage-mode-toggle" role="group" aria-label="Storage location">
+                    <span class="storage-mode-title">Storage:</span>
+                    <button id="storageModeSyncBtn" type="button" class="btn btn-secondary" aria-pressed="true">
+                        Sync storage
+                    </button>
+                    <button id="storageModeLocalBtn" type="button" class="btn btn-secondary" aria-pressed="false">
+                        Local storage
+                    </button>
+                </div>
+                <p class="storage-mode-help">
+                    <strong>Sync storage</strong> syncs your notes across your devices but is
+                    limited in size (~100&nbsp;KB / 512&nbsp;notes).
+                    <strong>Local storage</strong> holds far more notes but keeps them on this
+                    device only. If local storage holds more than sync can fit, you can't switch
+                    back to sync.
+                </p>
+            </div>
+
             <div id="tableContainer" class="table-container">
                 <table id="notesTable" class="notes-table">
                     <thead>

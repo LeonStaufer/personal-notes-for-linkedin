@@ -59,3 +59,40 @@ jobs:
             personal-notes-for-linkedin-${{ steps.version.outputs.version }}-chrome.zip
             personal-notes-for-linkedin-${{ steps.version.outputs.version }}-firefox.zip
           generate_release_notes: true
+
+      - name: Upload built zips for the publish job
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-zips
+          path: |
+            personal-notes-for-linkedin-${{ steps.version.outputs.version }}-chrome.zip
+            personal-notes-for-linkedin-${{ steps.version.outputs.version }}-firefox.zip
+          if-no-files-found: error
+
+  publish:
+    needs: release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Download built zips
+        uses: actions/download-artifact@v4
+        with:
+          name: extension-zips
+
+      # Submits the new version to Firefox Add-ons (AMO still runs its own review;
+      # this only removes the manual upload). Credentials live in the SUBMIT_KEYS
+      # repo secret.
+      #
+      # Chrome is intentionally NOT auto-published: the Chrome Web Store API only
+      # accepts a user OAuth token (no service accounts), and the publisher account
+      # is enrolled in Google Advanced Protection, which blocks that consent. Upload
+      # the chrome zip from the GitHub release manually instead.
+      - name: Publish to Firefox Add-ons
+        uses: PlasmoHQ/bpp@v3
+        with:
+          keys: ${{ secrets.SUBMIT_KEYS }}
+          firefox-file: personal-notes-for-linkedin-${{ steps.version.outputs.version }}-firefox.zip
